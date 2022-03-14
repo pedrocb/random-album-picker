@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"math"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
+	"random-album-picker/internal"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 func getUserRatings(user string) (map[int]int, error) {
@@ -39,7 +39,7 @@ func getUserRatings(user string) (map[int]int, error) {
 		childs := tr.Find("td")
 		rating, err := strconv.ParseFloat(strings.TrimSpace(childs.First().Text()), 64)
 		if err != nil {
-			fmt.Println("Got error %s", err.Error())
+			fmt.Printf("Got error %s", err.Error())
 			return
 		}
 
@@ -52,13 +52,19 @@ func getUserRatings(user string) (map[int]int, error) {
 }
 
 func getRandomRatingIndex(ratings map[int]int) int {
+	// Calculate total number of ratings
 	totalRatings := 0
 	for _, numRatings := range ratings {
-		totalRatings += int(numRatings)
+		totalRatings += numRatings
 	}
 
+	// Initialize array of percentages (each value in the array is the
+	// percentage of the album on that index to be picked)
 	percentages := make([]float64, totalRatings)
 
+	// First allocate shares for each album so that each rating has double
+	// the shares the rating before (this means that an album that has 10*
+	// is twice more likely to be picked than another one with 9*)
 	counter := 0
 	sumPercentages := 0.0
 	for rating := 1; rating <= 10; rating += 1 {
@@ -79,14 +85,8 @@ func getRandomRatingIndex(ratings map[int]int) int {
 		percentages[index] = percentages[index-1] + value/sumPercentages
 	}
 
-	rand.Seed(time.Now().UTC().UnixNano())
-	randomFloat := rand.Float64()
-	for index, value := range percentages {
-		if randomFloat < value {
-			return index
-		}
-	}
-	return -1
+	index := internal.GetSampleFromCDF(percentages)
+	return index
 }
 
 func getAlbumByIndex(user string, index int) string {
@@ -100,7 +100,7 @@ func getAlbumByIndex(user string, index int) string {
 	if err != nil {
 		return ""
 	}
-	req.Header.Set("User-Agent", "RYM Python Scraper")
+	req.Header.Set("User-Agent", "RYM Go Scraper")
 	resp, err := client.Do(req)
 	if err != nil {
 		return ""
@@ -121,7 +121,7 @@ func main() {
 	// Get user ratings
 	myUserRatings, err := getUserRatings(user)
 	if err != nil {
-		fmt.Println("Got error %s", err.Error())
+		fmt.Printf("Got error %s", err.Error())
 		return
 	}
 	fmt.Println(getAlbumByIndex(user, getRandomRatingIndex(myUserRatings)))

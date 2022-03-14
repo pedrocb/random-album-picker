@@ -1,4 +1,4 @@
-module github.com/x/y
+module random-album-picker
 
 go 1.14
 
