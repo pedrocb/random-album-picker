@@ -11,6 +11,41 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+func buildCDFFromRatings(ratings map[int]int, multiplier float64) []float64 {
+	// Build CDF from ratings map
+
+	// Calculate total number of ratings and shares
+	totalRatings := 0
+	totalShares := 0.0
+	for rating, numRatings := range ratings {
+		totalRatings += numRatings
+		totalShares += (math.Pow(multiplier, float64(rating-1)) * float64(numRatings))
+	}
+
+	// Initialize cumulative distribution function array
+	cdf := make([]float64, totalRatings)
+
+	// First allocate shares for each album so that each rating has <multiplier> times
+	// the shares the rating before (this means that an album that has 10*
+	// is twice more likely to be picked than another one with 9* if multiplier is 2)
+	counter := 0
+	for rating := 1; rating <= 10; rating += 1 {
+		numRatings := ratings[rating]
+		numShares := math.Pow(multiplier, float64(rating-1))
+		percentage := numShares / totalShares
+		for i := 0; i < numRatings; i++ {
+			if counter == 0 {
+				cdf[counter] = percentage
+			} else {
+				cdf[counter] = cdf[counter-1] + percentage
+			}
+			counter += 1
+		}
+	}
+	return cdf
+}
+
+
 func getUserRatings(user string) (map[int]int, error) {
 	// Request RYM profile page
 	client := &http.Client{}
@@ -29,6 +64,7 @@ func getUserRatings(user string) (map[int]int, error) {
 	if err != nil {
 		return nil, err
 	}
+
 
 	// Build ratings map {<rating>: <numRatings>}
 	ratings := make(map[int]int)
@@ -51,41 +87,11 @@ func getUserRatings(user string) (map[int]int, error) {
 	return ratings, nil
 }
 
-func getRandomRatingIndex(ratings map[int]int) int {
-	// Calculate total number of ratings
-	totalRatings := 0
-	for _, numRatings := range ratings {
-		totalRatings += numRatings
-	}
+func getRandomRatingIndex(ratings map[int]int, multiplier float64) int {
+	cdf := buildCDFFromRatings(ratings, multiplier)
+	fmt.Println(cdf)
 
-	// Initialize array of percentages (each value in the array is the
-	// percentage of the album on that index to be picked)
-	percentages := make([]float64, totalRatings)
-
-	// First allocate shares for each album so that each rating has double
-	// the shares the rating before (this means that an album that has 10*
-	// is twice more likely to be picked than another one with 9*)
-	counter := 0
-	sumPercentages := 0.0
-	for rating := 1; rating <= 10; rating += 1 {
-		numRatings := ratings[rating]
-		for i := 0; i < numRatings; i++ {
-			_percentage := math.Pow(2, float64(rating-1))
-			percentages[counter] = _percentage
-			sumPercentages += _percentage
-			counter += 1
-		}
-	}
-
-	percentages[0] /= sumPercentages
-	for index, value := range percentages {
-		if index == 0 {
-			continue
-		}
-		percentages[index] = percentages[index-1] + value/sumPercentages
-	}
-
-	index := internal.GetSampleFromCDF(percentages)
+	index := internal.GetSampleFromCDF(cdf)
 	return index
 }
 
@@ -124,5 +130,5 @@ func main() {
 		fmt.Printf("Got error %s", err.Error())
 		return
 	}
-	fmt.Println(getAlbumByIndex(user, getRandomRatingIndex(myUserRatings)))
+	fmt.Println(getAlbumByIndex(user, getRandomRatingIndex(myUserRatings, 2.0)))
 }
