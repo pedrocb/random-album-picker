@@ -89,13 +89,12 @@ func getUserRatings(user string) (map[int]int, error) {
 
 func getRandomRatingIndex(ratings map[int]int, multiplier float64) int {
 	cdf := buildCDFFromRatings(ratings, multiplier)
-	fmt.Println(cdf)
 
 	index := internal.GetSampleFromCDF(cdf)
 	return index
 }
 
-func getAlbumByIndex(user string, index int) string {
+func getAlbumByIndex(user string, index int) (string, string) {
 	page := (index / 25) + 1
 	albumIndex := index % 25
 
@@ -104,22 +103,23 @@ func getAlbumByIndex(user string, index int) string {
 	url := fmt.Sprintf("https://rateyourmusic.com/collection/%s/r0.5-5.0,ss.r/%d", user, page)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	req.Header.Set("User-Agent", "RYM Go Scraper")
 	resp, err := client.Do(req)
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	defer resp.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	album := doc.Find(".or_q_albumartist_td").Eq(albumIndex).Text()
+	rating, _ := doc.Find(".or_q_rating_date_s img").Eq(albumIndex).Attr("title")
 
-	return album
+	return album, rating
 }
 
 func main() {
@@ -130,5 +130,6 @@ func main() {
 		fmt.Printf("Got error %s", err.Error())
 		return
 	}
-	fmt.Println(getAlbumByIndex(user, getRandomRatingIndex(myUserRatings, 2.0)))
+	album, rating := getAlbumByIndex(user, getRandomRatingIndex(myUserRatings, 2.0))
+	fmt.Printf("%s - %s\n", album, rating)
 }
