@@ -5,9 +5,10 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"github.com/pedrocb/random-album-picker/internal"
 	"strconv"
 	"strings"
+
+	"github.com/pedrocb/random-album-picker/internal"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -121,20 +122,28 @@ func getAlbumByIndex(user string, index int) (string, string) {
 	return album, rating
 }
 
+func GetRandomAlbumFromRYM(user string) (string, error) {
+	// Get user ratings
+	myUserRatings, err := getUserRatings(user)
+	if err != nil {
+		return "", err
+	}
+	album, rating := getAlbumByIndex(user, getRandomRatingIndex(myUserRatings, 2.0))
+	return fmt.Sprintf("%s - %s", album, rating), nil
+}
+
 func main() {
 	args := os.Args
 	if len(args) < 2 {
 		fmt.Println("No username provided")
 		return
 	}
-
 	user := args[1]
-	// Get user ratings
-	myUserRatings, err := getUserRatings(user)
+	album, err := GetRandomAlbumFromRYM(user)
 	if err != nil {
 		fmt.Printf("Got error %s", err.Error())
-		return
+	} else {
+		fmt.Println(album)
 	}
-	album, rating := getAlbumByIndex(user, getRandomRatingIndex(myUserRatings, 2.0))
-	fmt.Printf("%s - %s\n", album, rating)
+
 }
