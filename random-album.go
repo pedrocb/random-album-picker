@@ -5,7 +5,7 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"random-album-picker/internal"
+	"github.com/pedrocb/random-album-picker/internal"
 	"strconv"
 	"strings"
 

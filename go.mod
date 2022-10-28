@@ -1,4 +1,4 @@
-module random-album-picker
+module github.com/pedrocb/random-album-picker
 
 go 1.14
 
