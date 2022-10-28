@@ -11,4 +11,4 @@ COPY . .
 
 RUN go build -o /out/random-album-picker
 
-CMD ["/out/random-album-picker"]
+ENTRYPOINT ["/out/random-album-picker"]

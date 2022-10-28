@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
+	"random-album-picker/internal"
 	"strconv"
 	"strings"
-	"random-album-picker/internal"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -45,7 +46,6 @@ func buildCDFFromRatings(ratings map[int]int, multiplier float64) []float64 {
 	return cdf
 }
 
-
 func getUserRatings(user string) (map[int]int, error) {
 	// Request RYM profile page
 	client := &http.Client{}
@@ -64,7 +64,6 @@ func getUserRatings(user string) (map[int]int, error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	// Build ratings map {<rating>: <numRatings>}
 	ratings := make(map[int]int)
@@ -123,7 +122,13 @@ func getAlbumByIndex(user string, index int) (string, string) {
 }
 
 func main() {
-	user := "pedrocb"
+	args := os.Args
+	if len(args) < 2 {
+		fmt.Println("No username provided")
+		return
+	}
+
+	user := args[1]
 	// Get user ratings
 	myUserRatings, err := getUserRatings(user)
 	if err != nil {
