@@ -1,10 +1,9 @@
-package main
+package random_album
 
 import (
 	"fmt"
 	"math"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -132,18 +131,3 @@ func GetRandomAlbumFromRYM(user string) (string, error) {
 	return fmt.Sprintf("%s - %s", album, rating), nil
 }
 
-func main() {
-	args := os.Args
-	if len(args) < 2 {
-		fmt.Println("No username provided")
-		return
-	}
-	user := args[1]
-	album, err := GetRandomAlbumFromRYM(user)
-	if err != nil {
-		fmt.Printf("Got error %s", err.Error())
-	} else {
-		fmt.Println(album)
-	}
-
-}
